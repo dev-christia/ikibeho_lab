@@ -1,0 +1,225 @@
+// // schema.prisma
+// // Prisma schema for Ikibeho Digital Lab eLearning platform using PostgreSQL
+
+
+
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String    @id @default(cuid())
+  firstName              String
+  lastName               String
+  username               String    @unique
+  email                  String    @unique
+  password               String
+  headline               String?
+  bio                    String?
+  profileImage           String?
+  language               String?   @default("English")
+  website                String?
+  twitter                String?
+  linkedin               String?
+  youtube                String?
+  facebook               String?
+  isVerified             Boolean   @default(false)
+  verificationToken      String?
+  verificationCode       String?
+  verificationTokenExpiry DateTime?
+  emailVerifiedAt        DateTime?
+  resetPasswordToken     String?
+  resetPasswordExpiry    DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  
+  // Relations
+  enrollments           Enrollment[]
+  reviews               Review[]
+  messages              Message[]
+  receivedMessages      Message[]   @relation("MessageRecipient")
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String?
+  price       Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  enrollments Enrollment[]
+  reviews     Review[]
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  progress  Float    @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  recipientId String
+  subject     String?
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  sender      User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+}
+
+
+
+// // Users model: Stores user information for authentication and profiles
+// model User {
+//   id               String    @id @default(uuid())
+//   email            String    @unique
+//   phone            String?   @unique
+//   name             String
+//   passwordHash     String?
+//   role             Role      @default(STUDENT)
+//   preferredLanguage Language  @default(FR)
+//   createdAt        DateTime  @default(now())
+//   updatedAt        DateTime  @updatedAt
+//   subscriptions    Subscription[]
+//   progress         Progress[]
+//   attendance       Attendance[]
+//   certifications   Certification[]
+
+//   @@index([email])
+// }
+
+// model Course {
+//   id               String    @id @default(uuid())
+//   title            String
+//   description      String?
+//   subject          String
+//   youtubeUrl       String?
+//   isLive           Boolean   @default(false)
+//   liveSchedule     DateTime?
+//   zoomMeetingId    String?
+//   zoomRecordingUrl String?
+//   createdAt        DateTime  @default(now())
+//   updatedAt        DateTime  @updatedAt
+//   progress         Progress[]
+//   attendance       Attendance[]
+//   certifications   Certification[]
+
+//   @@index([subject])
+// }
+
+// // Subscriptions model: Manages user subscriptions via IremboPay
+// model Subscription {
+//   id                  String    @id @default(uuid())
+//   userId              String
+//   user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   status              Status    @default(INACTIVE)
+//   amount              Int       @default(5000) // In RWF, e.g., 5,000 RWF/month
+//   startDate           DateTime?
+//   endDate             DateTime?
+//   iremboPayTransactionId String?
+//   createdAt           DateTime  @default(now())
+//   updatedAt           DateTime  @updatedAt
+
+//   @@index([userId])
+// }
+
+// // Progress model: Tracks subject-level progress for each user
+// model Progress {
+//   id                  String    @id @default(uuid())
+//   userId              String
+//   user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   courseId            String
+//   course              Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+//   subject             String
+//   completionPercentage Int       @default(0)
+//   quizScore           Int?
+//   lastUpdated         DateTime  @default(now())
+
+//   @@index([userId, courseId])
+// }
+
+// // Attendance model: Tracks attendance for live Zoom sessions
+// model Attendance {
+//   id              String    @id @default(uuid())
+//   userId          String
+//   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   courseId        String
+//   course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+//   attendedAt      DateTime  @default(now())
+//   zoomMeetingId   String?
+
+//   @@index([userId, courseId])
+// }
+
+// // Certifications model: Stores generated certificates for completed courses
+// model Certification {
+//   id              String    @id @default(uuid())
+//   userId          String
+//   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   courseId        String
+//   course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+//   issuedAt        DateTime  @default(now())
+//   certificateUrl  String?   // URL to PDF on AWS S3
+
+//   @@index([userId, courseId])
+// }
+
+// // Enums for constrained fields
+// enum Role {
+//   STUDENT
+//   ADMIN
+// }
+
+// enum Language {
+//   EN
+//   FR
+// }
+
+// enum Status {
+//   ACTIVE
+//   INACTIVE
+//   CANCELED
+// }
